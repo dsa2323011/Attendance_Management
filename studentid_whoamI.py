@@ -45,7 +45,7 @@ def on_connect(tag: nfc.tag.Tag) -> bool:
     print(f"   読み取られたIDm: {idm_hex}")
 
     # 辞書と照合して学籍番号を取得
-    found_student_id = STUDENT_IDS.get(idm_hex)
+    found_student_id = StudentIDs.get(idm_hex)
     
     if found_student_id:
         print("\n✅ 照合成功！")
