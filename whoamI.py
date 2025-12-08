@@ -6,26 +6,8 @@ import nfc
 import binascii
 import sys
 import os
+import IDs_DB
 
-# 照合用の学生証データ辞書
-# 実際には、学籍番号と対応するIDmのデータを事前に準備しておく必要があります。
-# フォーマット： { 'IDmの16進数文字列': '対応する学籍番号' }
-#学籍番号と内部IDのデータベース
-StudentIDs = {
-            "012E50E6E84C626D":"2323010",
-            "012E50E6E84C625D":"2323011",
-            "012E50E6E84B303E":"2323019",
-            "012E50E6E84B3139":"2323022",
-            "012E50E6E84D498D":"2323033",
-            "012E50E6E84D4DB7":"2323049",
-            "012E50E6E84D4E38":"2323051",
-            "012E5CE5D81676A4":"2323082",
-            "012E50E6E84CC072":"2323087",
-            "012E50E6E84CC073":"2323088",
-            "012E50E6E84CC053":"2323091",
-            "012E50E6E84CBD8C":"2323093",
-            "012E50E6E84CBE71":"2323107"
-            }
 
 def on_connect(tag: nfc.tag.Tag) -> bool:
     """NFCタグが接続されたときに実行される関数。"""
@@ -45,7 +27,7 @@ def on_connect(tag: nfc.tag.Tag) -> bool:
     print(f"   読み取られたIDm: {idm_hex}")
 
     # 辞書と照合して学籍番号を取得
-    found_student_id = StudentIDs.get(idm_hex)
+    found_student_id = IDs_DB.StudentIDs.get(idm_hex)
     
     if found_student_id:
         print("\n✅ 照合成功！")
@@ -54,7 +36,7 @@ def on_connect(tag: nfc.tag.Tag) -> bool:
     else:
         print("\n❌ 照合失敗。")
         print("   このIDmに対応する学籍番号が見つかりませんでした。")
-        print("   （辞書に登録されていない学生証です）")
+        print("   （DBに登録されていない学生証です）")
 
     # Trueを返すとタグが離されるまで待機しますが、ここでは処理完了後にすぐに次のカードを待てるようにFalseを返すことで、
     # Enter待ちのステップに進めるようにします。
@@ -67,7 +49,7 @@ def on_release(tag: nfc.tag.Tag) -> None:
 def main():
     """メイン処理"""
     print("NFCリーダを初期化中...")
-    print(f"登録済み学生数: {len(StudentIDs)}名")
+    print(f"登録済み学生数: {len(IDs_DB.StudentIDs)}名")
 
     try:
         # 'usb'はLinuxで一般的なNFCリーダーの指定方法です。
