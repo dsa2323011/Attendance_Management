@@ -5,13 +5,12 @@ import nfc
 import binascii
 import time
 import csv
+import os
+import datetime
 
-# ★変更点: 別のファイルから辞書を読み込む
+# 別のファイルから辞書を読み込む
 # studentsID_DB.py が同じフォルダにある必要があります
-from StudentsID_DB import StudentsID
-
-# 保存するCSVファイル名
-CSV_FILENAME = "attendance_list.csv"
+from studentsID_DB import studentsID
 
 class NFCApp:
     def __init__(self, root):
@@ -58,25 +57,17 @@ class NFCApp:
 
     def on_nfc_connect(self, tag):
         """カードがタッチされた時の処理（別スレッド）"""
-        # IDm取得
         idm_bytes = tag.idm
         idm_hex = binascii.hexlify(idm_bytes).decode('ascii').upper()
 
-        # ★変更点: 外部ファイルからインポートした辞書(StudentsID)を使用
-        student_id = StudentsID.get(idm_hex)
+        student_id = studentsID.get(idm_hex)
 
         if student_id:
-            # ★変更点: 日時を削除し、学籍番号のみをリストに追加
-            # 重複読み取りを防ぐ場合、ここで `if [student_id] not in self.scanned_data:` 等の判定も可能です
             self.scanned_data.append([student_id])
-            
-            # GUI更新（成功）
             self.update_gui("成功", student_id, "green")
         else:
-            # GUI更新（未登録）
             self.update_gui("未登録", "未登録カード", "red")
 
-        # 少し待機してからリセット
         time.sleep(1.5)
         self.reset_gui()
         
@@ -102,7 +93,6 @@ class NFCApp:
         self.label_title.config(text=status_text)
         self.label_result_id.config(text=result_text, fg=color)
         
-        # 件数の更新
         count_text = f"読み取り件数: {len(self.scanned_data)}"
         self.label_count.config(text=count_text)
 
@@ -113,21 +103,39 @@ class NFCApp:
         self.label_result_id.config(text="---", fg="black")
 
     def export_csv(self):
-        """データをCSVに書き出す処理"""
+        """データをCSVに書き出す処理（savedフォルダへ保存）"""
         if not self.scanned_data:
             messagebox.showwarning("警告", "保存するデータがありません。")
             return
 
         try:
-            # encoding='utf-8' (Excelで開くなら 'cp932' や 'utf-8-sig' 推奨)
-            with open(CSV_FILENAME, 'w', newline='', encoding='utf-8') as f:
+            # 1. 保存先フォルダ 'saved' の準備
+            save_dir = "saved"
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
+                print(f"フォルダ '{save_dir}' を作成しました。")
+
+            # 2. 現在時刻の取得とファイル名の生成
+            now = datetime.datetime.now()
+            # ファイル名: 出席名簿_2023-10-25_14-30-05.csv のような形式
+            filename = now.strftime("出席名簿_%Y-%m-%d_%H-%M-%S.csv")
+            filepath = os.path.join(save_dir, filename)
+
+            # 3. CSV書き込み
+            # encoding='utf-8-sig' はExcelで日本語が文字化けしないための設定です
+            with open(filepath, 'w', newline='', encoding='utf-8-sig') as f:
                 writer = csv.writer(f)
-                # ★変更点: ヘッダーからTimeを削除
-                writer.writerow(["Student ID"])
-                # データ書き込み (学籍番号のみ)
+                
+                # ★要件: 最初に保存時刻を出力
+                save_time_str = now.strftime("%Y-%m-%d %H:%M:%S")
+                writer.writerow(["保存日時", save_time_str])
+                writer.writerow([]) # 空行を一つ入れる（見やすさのため）
+                
+                # ヘッダーとデータ
+                writer.writerow(["student ID"])
                 writer.writerows(self.scanned_data)
             
-            messagebox.showinfo("成功", f"データを '{CSV_FILENAME}' に保存しました！")
+            messagebox.showinfo("成功", f"データを保存しました。\n\n場所: {save_dir}\nファイル名: {filename}")
             
         except Exception as e:
             messagebox.showerror("エラー", f"保存中にエラーが発生しました:\n{e}")
