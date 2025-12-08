@@ -8,7 +8,7 @@ import csv
 
 # ★変更点: 別のファイルから辞書を読み込む
 # studentsID_DB.py が同じフォルダにある必要があります
-from studentsID_DB import StudentsID
+from StudentsID_DB import StudentsID
 
 # 保存するCSVファイル名
 CSV_FILENAME = "attendance_list.csv"
