@@ -62,6 +62,8 @@ class NFCApp:
 
     def on_nfc_connect(self, tag):
         """カードがタッチされた時の処理（別スレッド）"""
+        # ウェブカメラのキャプチャを開始
+        cap = cv2.VideoCapture(0)
         idm_bytes = tag.idm
         idm_hex = binascii.hexlify(idm_bytes).decode('ascii').upper()
 
@@ -81,7 +83,7 @@ class NFCApp:
         time.sleep(3)
         # キャプチャをリリースし、ウィンドウを閉じる
         cap.release()
-        cv2.destroyAllWindows()
+        #cv2.destroyAllWindows()
         self.reset_gui()
         
         return True
@@ -159,8 +161,7 @@ class NFCApp:
         self.root.destroy()
 
 if __name__ == "__main__":
-    # ウェブカメラのキャプチャを開始
-    cap = cv2.VideoCapture(0)
+    
     root = tk.Tk()
     app = NFCApp(root)
     root.mainloop()
