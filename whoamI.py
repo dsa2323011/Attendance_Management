@@ -6,7 +6,7 @@ import nfc
 import binascii
 import sys
 import os
-import IDs_DB
+import StudentsID_DB
 
 
 def on_connect(tag: nfc.tag.Tag) -> bool:
@@ -27,7 +27,7 @@ def on_connect(tag: nfc.tag.Tag) -> bool:
     print(f"   読み取られたIDm: {idm_hex}")
 
     # 辞書と照合して学籍番号を取得
-    found_student_id = IDs_DB.StudentIDs.get(idm_hex)
+    found_student_id = StudentsID_DB.StudentIDs.get(idm_hex)
     
     if found_student_id:
         print("\n✅ 照合成功！")
@@ -49,7 +49,7 @@ def on_release(tag: nfc.tag.Tag) -> None:
 def main():
     """メイン処理"""
     print("NFCリーダを初期化中...")
-    print(f"登録済み学生数: {len(IDs_DB.StudentIDs)}名")
+    print(f"登録済み学生数: {len(StudentsID_DB.StudentIDs)}名")
 
     try:
         # 'usb'はLinuxで一般的なNFCリーダーの指定方法です。
