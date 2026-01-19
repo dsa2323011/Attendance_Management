@@ -73,10 +73,8 @@ class NFCApp:
             self.scanned_data.append([student_id])
             self.update_gui("成功", student_id, "green")
             # フレームを読み込む
-            ret, frame = cap.read()
-            if ret == True:
-                # フレームを表示
-                cv2.imshow('Webcam Live', frame)
+            image = cv2.imread('image.jpg')
+            cv2.imshow('Image', image)
         else:
             self.update_gui("未登録", "未登録カード", "red")
 
