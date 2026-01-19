@@ -73,8 +73,8 @@ class NFCApp:
             # フレームを読み込む
             ret, frame = cap.read()
             if ret == True:
-            # フレームを表示
-            cv2.imshow('Webcam Live', frame)
+                # フレームを表示
+                cv2.imshow('Webcam Live', frame)
         else:
             self.update_gui("未登録", "未登録カード", "red")
 
