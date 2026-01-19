@@ -159,8 +159,9 @@ class NFCApp:
         self.root.destroy()
 
 if __name__ == "__main__":
+    # ウェブカメラのキャプチャを開始
+    cap = cv2.VideoCapture(0)
     root = tk.Tk()
     app = NFCApp(root)
     root.mainloop()
-    # ウェブカメラのキャプチャを開始
-    cap = cv2.VideoCapture(0)
+    
