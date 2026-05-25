@@ -7,6 +7,8 @@ import binascii
 import sys
 import os
 import StudentsID_DB
+import cv2
+
 
 
 def on_connect(tag: nfc.tag.Tag) -> bool:
@@ -78,6 +80,8 @@ def main():
         print("\n\nプログラムを終了します。")
     except Exception as e:
         print(f"\n致命的なエラーが発生しました: {e}", file=sys.stderr)
+
+
 
 if __name__ == "__main__":
     main()
