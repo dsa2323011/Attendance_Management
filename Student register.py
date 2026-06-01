@@ -38,7 +38,7 @@ except ImportError:
 # ── OCR ──────────────────────────────────
 try:
     import easyocr
-    _ocr_reader = None  # 遅延初期化（初回起動コスト回避）
+    _ocr_reader = None
     OCR_AVAILABLE = True
 except ImportError:
     OCR_AVAILABLE = False
@@ -68,13 +68,6 @@ os.makedirs(FACE_DIR, exist_ok=True)
 # ─────────────────────────────────────────
 # OCRユーティリティ
 # ─────────────────────────────────────────
-def _get_ocr_reader():
-    global _ocr_reader
-    if _ocr_reader is None:
-        _ocr_reader = easyocr.Reader(["ja", "en"], gpu=False)
-    return _ocr_reader
-
-
 def ocr_scan_card(frame: np.ndarray) -> dict:
     """
     学生証画像からOCRで情報を抽出する。
@@ -91,8 +84,11 @@ def ocr_scan_card(frame: np.ndarray) -> dict:
     if not OCR_AVAILABLE:
         return result
 
-    reader = _get_ocr_reader()
-    detections = reader.readtext(frame)  # [(bbox, text, conf), ...]
+    global _ocr_reader
+    if _ocr_reader is None:
+        _ocr_reader = easyocr.Reader(["ja", "en"], gpu=False)
+
+    detections = _ocr_reader.readtext(frame)  # [(bbox, text, conf), ...]
 
     all_texts = []
     student_id_candidates = []
@@ -104,19 +100,18 @@ def ocr_scan_card(frame: np.ndarray) -> dict:
             continue
         all_texts.append(cleaned)
 
-        # 学籍番号候補: 英数字のみ、パターンに一致、信頼度0.5以上
+        # 学籍番号候補
         no_space = cleaned.replace(" ", "").replace("-", "").replace("　", "")
         if conf >= 0.5 and STUDENT_ID_PATTERN.match(no_space):
             student_id_candidates.append((conf, no_space))
 
-        # 氏名候補: 日本語（ひらがな・カタカナ・漢字）を含む、2文字以上、信頼度0.5以上
+        # 氏名候補: 日本語を含む
         has_jp = bool(re.search(r'[\u3040-\u9fff]', cleaned))
         if has_jp and conf >= 0.5 and 2 <= len(cleaned.replace(" ", "")) <= 20:
             name_candidates.append((conf, cleaned))
 
     result["all_texts"] = all_texts
 
-    # 信頼度最高のものを採用
     if student_id_candidates:
         result["student_id"] = max(student_id_candidates, key=lambda x: x[0])[1].upper()
     if name_candidates:
