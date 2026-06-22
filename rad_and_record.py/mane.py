@@ -2,6 +2,7 @@ import nfc
 import binascii
 import sqlite3
 import datetime
+import time # 追加: 待機処理用
 
 DB_NAME = "attendance.db"
 
@@ -10,7 +11,6 @@ def init_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
-    # 1. 学生名簿テーブル (IDmと学籍番号の紐付け)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS students (
             idm TEXT PRIMARY KEY,
@@ -18,7 +18,6 @@ def init_db():
         )
     ''')
     
-    # 2. 出席ログテーブル (記録するのはIDmではなく学籍番号にする)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,53 +55,62 @@ def log_attendance(student_id):
     conn.close()
     print(f"[{now}] 出席記録完了: 学籍番号 {student_id}")
 
-def on_connect(tag):
-    """カードがタッチされた時の処理"""
-    try:
-        idm = binascii.hexlify(tag.identifier).decode().upper()
-        
-        # データベースから学籍番号を探す
-        student_id = get_student_id(idm)
-
-        if student_id:
-            # パターンA: すでに登録されている場合
-            print(f"\n学生証を認識しました！ 学籍番号: {student_id}")
-            log_attendance(student_id)
-        else:
-            # パターンB: 未登録の新しいカードの場合
-            print(f"\n未登録のカードです。(IDm: {idm})")
-            new_id = input("登録する学籍番号を入力してください (キャンセルはEnter): ")
-            
-            if new_id:
-                register_student(idm, new_id)
-                print(f"学籍番号 {new_id} を名簿に登録しました。")
-                log_attendance(new_id)
-            else:
-                print("登録をキャンセルしました。")
-                
-    except Exception as e:
-        print(f"読み取りエラー: {e}")
-        
-    return True 
+# ※今回は on_connect を使いません。clf.connect() の戻り値を直接使います。
 
 def main():
     init_db()
     print("データベースの準備が完了しました。")
     
+    clf = None
     try:
         clf = nfc.ContactlessFrontend('usb')
         print("PaSoRiの準備が完了しました。")
         print("=== 出席受付を開始します (終了するには Ctrl+C) ===")
         
+        # 前回のタッチしたIDmを保持して、連続二重タッチを防ぐ
+        last_idm = None
+        
         while True:
-            clf.connect(rdwr={'on-connect': on_connect})
+            # iterations=1 (1回だけポーリング), interval=0.5 (0.5秒間隔) で短時間だけ待機
+            # カードがなければ None を返し、カードがあれば tag オブジェクトを返す
+            tag = clf.connect(rdwr={'iterations': 1, 'interval': 0.5})
+            
+            if tag:
+                idm = binascii.hexlify(tag.identifier).decode().upper()
+                
+                # 同じカードをずっと乗せている場合の二重記録を防ぐ
+                if idm != last_idm:
+                    student_id = get_student_id(idm)
+
+                    if student_id:
+                        print(f"\n学生証を認識しました！ 学籍番号: {student_id}")
+                        log_attendance(student_id)
+                    else:
+                        print(f"\n未登録のカードです。(IDm: {idm})")
+                        new_id = input("登録する学籍番号を入力してください (キャンセルはEnter): ")
+                        
+                        if new_id:
+                            register_student(idm, new_id)
+                            print(f"学籍番号 {new_id} を名簿に登録しました。")
+                            log_attendance(new_id)
+                        else:
+                            print("登録をキャンセルしました。")
+                    
+                    last_idm = idm # 今回タッチしたIDmを記録
+            else:
+                # カードが離れたら last_idm をリセットし、次の人のタッチを受け付ける
+                last_idm = None
+                
+            # 少しだけスリープを入れてCPU負荷を下げる
+            time.sleep(0.1)
             
     except KeyboardInterrupt:
-        print("\nシステムを終了します。お疲れ様でした。")
+        # Ctrl+C を確実にここでキャッチできるようになります
+        print("\n\nシステムを終了します。お疲れ様でした。")
     except Exception as e:
         print(f"エラーが発生しました: {e}")
     finally:
-        if 'clf' in locals() and clf:
+        if clf:
             clf.close()
 
 if __name__ == '__main__':
