@@ -8,7 +8,7 @@ import csv
 import os
 import datetime
 import cv2
-from face_verifier import  verify_face
+from face_verifier import verify_face
 
 # ウェブカメラのキャプチャを開始
 cap = cv2.VideoCapture(0)
